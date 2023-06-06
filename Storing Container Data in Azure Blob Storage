@@ -34,6 +34,11 @@ Install blobfuse:
 => sudo rpm -Uvh https://packages.microsoft.com/config/rhel/7/packages-microsoft-prod.rpm
 
 => sudo yum install blobfuse fuse -y ======> NOT INSTALLING
+Rectify by this 
+=> sudo yum clean all
+=> sudo yum makecache
+
+
 Modify the fuse.conf configuration file:
 
 => sudo sed -ri 's/# user_allow_other/user_allow_other/' /etc/fuse.conf
