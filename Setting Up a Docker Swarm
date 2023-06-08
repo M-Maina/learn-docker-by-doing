@@ -1,0 +1,48 @@
+Introduction
+For the last six months, the Acme Anvil Corporation has been migrating some of their bare metal infrastructure to Docker containers. A schism has developed between the members of your team on whether to use Docker Swarm or Kubernetes. Your manager has decided to settle the dispute by creating two competing demos for Docker Swarm and Kubernetes. You have been tasked with helping to create the Docker Swarm demo. Create a swarm with three nodes and then create a service using the weather-app image.
+
+Instructions
+In this lab, you are tasked with setting up a Docker swarm.
+
+Log in to Swarm Server 1. This will be your swarm master.
+Initialize a new Docker swarm.
+Add two worker nodes to the swarm.
+Create a new swarm service using the weather-app image.
+Name the service weather-app.
+Publish port 80 and map it to port 3000 on the container.
+Create 3 replicas.
+Solution
+Begin by logging in to Swarm Server 1 using the credentials provided on the hands-on lab page:
+
+ssh cloud_user@PUBLIC_IP_ADDRESS
+Become the root user:
+
+======>> sudo su -
+Repeat these steps for Swarm Server 2 and Swarm Server 3 in new tabs.
+
+Initialize the Docker swarm
+On Swarm Server 1:
+
+Initialize the Docker swarm.
+
+======>  docker swarm init
+Copy the docker swarm join command that is displayed for the next step.
+
+Add additional nodes to the swarm
+Add your worker nodes to the swarm.
+
+Run the following command on Swarm Server 2 and Swarm Server 3:
+
+======>>> docker swarm join --token TOKEN IP_ADDRESS:2377
+Note: This is the command that was copied from the previous step.
+
+Create a swarm service
+From the master node (Swarm Server 1), create a service to test your swarm configuration.
+
+======>>>> docker service create --name weather-app --publish published=80,target=3000 --replicas=3 weather-app
+Verify that this completed successfully:
+
+=====>>>  docker service ls
+We can also paste one of the public IP addresses of our worker nodes in a browser to view the weather app.
+
+Conclusion
