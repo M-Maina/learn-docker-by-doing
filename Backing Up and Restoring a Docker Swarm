@@ -1,0 +1,107 @@
+Introduction
+For the last six months, the Acme Anvil Corporation has been migrating some of their bare metal infrastructure to Docker containers. A schism has developed between the members of your team on whether to use Docker Swarm or Kubernetes. To settle the dispute, your manager has decided to create a series of challenges. You have been tasked with creating a demo on how to back up and restore a Docker swarm. You are to set up a Docker swarm with 3 nodes, scale the backup service up to 3 nodes, and back up your master node and restore it to a backup instance.
+
+Instructions
+In this lab, you are tasked with backing up and restoring a Docker swarm.
+
+Use cat on the file swarm-token.txt to show the join token for your worker nodes.
+Add 2 worker nodes to the swarm.
+Scale the backup service up to 3 replicas.
+Stop the Docker service on the master node and use tar to compress the swarm directory.
+Use scp to securely copy the swarm tarball to /home/cloud_user on the backup master node.
+Use tar to extract the tarball.
+Stop the Docker service, restore the swarm directory, and start up the Docker service.
+Force the swarm to reinitialize a new cluster.
+Add the two worker nodes to the swarm.
+Solution
+Begin by logging in to all lab servers using the credentials provided on the hands-on lab page:
+
+$ ssh cloud_user@PUBLIC_IP_ADDRESS
+Become the root user on each one:
+
+====>> $ sudo su -
+A Note on Server Names
+Pay attention to the shell prompts here. The three swarm servers are called server1, server2, and server3. The backup swarm server, a fourth machine, is called backup.
+
+Join the worker nodes to the swarm
+On server1, view the docker swarm join command:
+
+=====>> [root@server1 ~]# cat swarm-token.txt
+Copy the docker swarm join command provided in this output, and run it on server2:
+
+=====>> [root@server2 ~]# docker swarm join --token $JOIN_TOKEN_HERE
+Now we'll run it again on server3:
+
+=====>> [root@server3 ~]# docker swarm join --token $JOIN_TOKEN_HERE
+Back on the master node, let's view the running services:
+
+=====>> [root@server1 ~]# docker service ls
+We'll see a service named backup, and we want to scale it up to 3 nodes:
+
+=====>> [root@server1 ~]# docker service scale backup=3
+Now we can check by showing the service across our nodes:
+
+=====>> [root@server1 ~]# docker service ps backup
+Back up the swarm master
+Before we can back up the Docker swarm, we've got to stop the docker service on the master node:
+
+=====>> [root@server1 ~]# systemctl stop docker
+Now back up the /var/lib/docker/swarm/ directory:
+
+=====>> [root@server1 ~]# tar czvf swarm.tgz /var/lib/docker/swarm/
+Restore the swarm on the backup master
+Let's copy the swarm backup from the master node to the backup master:
+
+Note: Be sure to replace BACKUP_IP_ADDRESS with the private IP address of the backup server.
+
+=====>> [root@server1 ~]# scp swarm.tgz cloud_user@BACKUP_IP_ADDRESS:/home/cloud_user/
+Now we can get into the backup server and extract the backup file:
+
+=====>> [root@backup ~]# cd /home/cloud_user
+=====>> [root@backup ~]# tar xzvf swarm.tgz
+Then copy the swarm directory to /var/lib/docker/swarm. First let's get into the directory:
+
+=====>> [root@backup ~]# cd var/lib/docker
+Now do the actual copying:
+
+====>> [root@backup ~]# cp -rf swarm/ /var/lib/docker/
+With that finished, we can restart the Docker service:
+
+=====>> [root@backup ~]# systemctl restart docker
+Now we'll reinitialize the swarm:
+
+=====>> [root@backup ~]# docker swarm init --force-new-cluster
+We need the docker swarm join command that's in the output.
+
+Add the worker nodes to the restored cluster
+On server2 and server3, we need to leave the first swarm and join the new one. First, server2:
+
+====>> [root@server2 ~]# docker swarm leave
+====>> [root@server2 ~]# docker swarm join --token $NEW_JOIN_TOKEN_HERE
+Oops, that didn't work. Look at that new join token. The IP address is for server1. We need the IP for backup in there. Edit the command (swapping out the bad IP address for the good one) and try to join the swarm again.
+
+Now let's repeat on server3:
+
+====>> [root@server3 ~]# docker swarm leave
+====>> [root@server3 ~]# docker swarm join --token $NEW_JOIN_TOKEN_HERE
+Remember to change that IP again.
+
+Distribute the replicas across the swarm
+On the backup server, make sure the backup service is still running:
+
+====>> [root@backup ~]# docker service ls
+Now let's look at the current service list:
+
+====>> [root@backup ~]# docker service ps backup
+This shows us that we have three replicas, but they're all on our backup master (backup). To make sure our service is distributed across our swarm, we've first got to scale things down to one, then back up to three:
+
+=====>> [root@backup ~]# docker service scale backup=1
+=====>> [root@backup ~]# docker service scale backup=3
+Once that's done, let's check on our service again:
+
+=====>> [root@backup ~]# docker service ps backup
+We'll see that our service is now running across all of the nodes.
+
+Conclusion
+
+
