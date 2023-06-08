@@ -1,0 +1,72 @@
+Scaling a Docker Swarm Service
+Hi there. Welcome to the lab. This one looks to be fairly simple. We've got to create a couple of Docker swarm master nodes, and three worker nodes, then practice scaling replicas up and down.
+
+There are five servers we'll need to log into: two will be swarm masters, and three will be swarm workers. Keep the Linux Academy lab page handy. We'll need it for login credentials, and to help keep track of which server is doing what. The command prompts in this lab guide are just general "user@host" types, but knowing which host has which IP will be helpful.
+
+If we fire up five terminals, and log into each of the servers, we'll be able to switch back and forth quickly. And since we'll need to be root in all of them, we can just run a sudo su - as soon as we log into each one. Once we're in, we can get moving with Docker.
+
+Create a Swarm
+On our first server, we're going to create a swarm master. Initialize the swarm with this:
+
+=====> [root@swarmmaster1]# docker swarm init
+There's going to be some output, including a docker swarm join command that we can copy.
+
+Add Worker Nodes
+On our worker node servers, we can join the swarm by pasting in the command that our swarm master spit out. Add the 3 worker nodes with these:
+
+Worker 1
+====>> [root@swarmworker1]# docker swarm join --token <TOKEN> <IP_ADDRESS:2377>
+Worker 2
+=====>> [root@swarmworker2]# docker swarm join --token <TOKEN> <IP_ADDRESS:2377>
+Worker 3
+=====>> [root@swarmworker3]# docker swarm join --token <TOKEN> <IP_ADDRESS:2377>
+The Master Token
+Back on swarmmaster1, we need to generate the master token:
+
+=====>> [root@swarmmaster1]# docker swarm join-token manager
+This will output yet another command. The first one we copied and pasted was for getting a worker node joined. This one is for when we want a master node to join. Let's log into the second master, and paste that command:
+
+=====>> [root@swarmmaster2]# docker swarm join --token <TOKEN> <IP_ADDRESS:2377>
+Check Our Work
+A quick docker node ls from our first master server will show us that there are five nodes running. Three are workers, and two have a MANAGER STATUS: Leader (the first master) and Reachable (the second master).
+
+Ensure that the Two Masters Will Only Function as Masters
+We want the masters to just be masters, not workers too. To do that we run these (one for each master):
+
+Set the availability to drain for Master1.
+
+======>> [root@swarmmaster1]# docker node update --availability drain <MASTER1 ID>
+Set the availability to drain for Master2.
+
+=====>> [root@swarmmaster1]# docker node update --availability drain <MASTER2 ID>
+<MASTER ID> here would be the ID column in that docker node ls command we ran earlier.
+
+Create a Service
+We're going to create a service, and replicate it three times.
+
+======>> [root@swarmmaster1]# docker service create --name httpd -p 80:80 --replicas 3 httpd
+In this command, we created the service, named it httpd, ran it on port 80, created three replicas, and used an image called httpd that was pulled from Docker Hub.
+
+Check What Is Running
+We can look at what actually fired up with another docker command:
+
+=====>> [root@swarmmaster1]# docker service ps httpd
+The output shows that we have three replicas running, one on each of our worker nodes, and that they're only running on our worker nodes. Great. Now let's scale up.
+
+Scale the httpd Service up to Five Nodes
+Instead of just running three replicas, let's scale the httpd service up to five:
+
+====>> [root@swarmmaster1]# docker service scale httpd=5
+If we run another docker service ps httpd, we'll see there are now five replicas running. If we look at the nodes, we'll also see that it's still only the worker nodes running these. This is what we intended though: we want our master being masters, and just want the workers working.
+
+Let's scale down and see what happens.
+
+Scale the httpd Service Back Down to Two Nodes
+We're going to cut our workforce by three, so that we're only running two replicas:
+
+=====>> [root@swarmmaster1]# docker service scale httpd=2
+Now we can run docker service ps httpd again, and we'll see that three of the replicas have disappeared, leaving us with two.
+
+Conclusion
+
+
