@@ -8,7 +8,7 @@ Log in to the server using the credentials provided:
 
 => ssh cloud_user@<PUBLIC_IP_ADDRESS>
 Installing Docker
-Install the Docker prerequisites:
+Install the Docker prerequisites: Storage Drivers that enable one to write on container writable layer
 
 => sudo yum install -y yum-utils device-mapper-persistent-data lvm2
 
